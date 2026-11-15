@@ -6,6 +6,7 @@ import { SectionBar } from './components/SectionBar';
 import { InfoCard } from './components/InfoCard';
 import { ProductOverlay } from './components/ProductCard';
 import { CartDrawer } from './components/CartDrawer';
+import { MusicPlayer } from './components/MusicPlayer';
 import { Scene } from './scene/Scene';
 import { flyToCart } from './utils/cartAnimation';
 import { storeState } from './utils/registry';
@@ -147,6 +148,9 @@ export function App() {
 
       {/* Shopping Bag Drawer */}
       <CartDrawer isOpen={cartOpen} onClose={() => setCartOpen(false)} />
+
+      {/* Floating Background Music Player */}
+      <MusicPlayer />
     </>
   );
 }
