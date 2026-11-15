@@ -10,6 +10,7 @@ import { MusicPlayer } from './components/MusicPlayer';
 import { Scene } from './scene/Scene';
 import { flyToCart } from './utils/cartAnimation';
 import { storeState } from './utils/registry';
+import { playProductClickSound, playThumbTickSound } from './utils/sound';
 
 export function App() {
   const [currentSection, setCurrentSection] = useState('overview');
@@ -49,6 +50,7 @@ export function App() {
   const handleOpenProduct = useCallback((id) => {
     const product = PRODUCTS_BY_ID[id];
     if (product) {
+      playProductClickSound();
       setCurrentSection(product.section);
       setActiveProduct(product);
       setActiveViewIndex(0);
@@ -72,6 +74,7 @@ export function App() {
     if (!activeProduct) return;
     const sectionList = PRODUCTS_BY_SECTION[activeProduct.section];
     if (!sectionList || sectionList.length === 0) return;
+    playThumbTickSound();
     const nextIdx = (activeProduct.index + direction + sectionList.length) % sectionList.length;
     setActiveProduct(sectionList[nextIdx]);
     setActiveViewIndex(0);

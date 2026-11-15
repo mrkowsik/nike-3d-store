@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useCart } from '../context/CartContext';
+import { playProductClickSound, playThumbTickSound } from '../utils/sound';
 
 export function ProductOverlay({
   product,
@@ -29,6 +30,7 @@ export function ProductOverlay({
       setTimeout(() => setIsShaking(false), 450);
       return;
     }
+    playProductClickSound();
     setIsAdded(true);
     onAddToCart(product, selectedSize);
     setTimeout(() => setIsAdded(false), 1200);
@@ -36,7 +38,14 @@ export function ProductOverlay({
 
   return (
     <div className="product-view">
-      <button type="button" className="product-view__close" onClick={onClose}>
+      <button
+        type="button"
+        className="product-view__close"
+        onClick={() => {
+          playThumbTickSound();
+          onClose();
+        }}
+      >
         Close
       </button>
 
@@ -47,7 +56,10 @@ export function ProductOverlay({
             key={i}
             type="button"
             className={`view-thumbs__item ${activeViewIndex === i ? 'is-active' : ''}`}
-            onClick={() => onSelectView(i)}
+            onClick={() => {
+              playThumbTickSound();
+              onSelectView(i);
+            }}
             aria-label={`View angle ${i + 1}`}
           >
             <img
@@ -63,7 +75,10 @@ export function ProductOverlay({
       <button
         type="button"
         className="step-arrow step-arrow--prev"
-        onClick={onPrev}
+        onClick={() => {
+          playThumbTickSound();
+          onPrev();
+        }}
         aria-label="Previous product"
       >
         ←
@@ -71,7 +86,10 @@ export function ProductOverlay({
       <button
         type="button"
         className="step-arrow step-arrow--next"
-        onClick={onNext}
+        onClick={() => {
+          playThumbTickSound();
+          onNext();
+        }}
         aria-label="Next product"
       >
         →
@@ -103,7 +121,10 @@ export function ProductOverlay({
                 type="button"
                 disabled={isSold}
                 className={`size-grid__size ${isChosen ? 'is-chosen' : ''}`}
-                onClick={() => setSelectedSize(size)}
+                onClick={() => {
+                  playThumbTickSound();
+                  setSelectedSize(size);
+                }}
               >
                 {size}
               </button>
@@ -122,7 +143,10 @@ export function ProductOverlay({
         <button
           type="button"
           className="product-card__view-cart"
-          onClick={onViewCart}
+          onClick={() => {
+            playThumbTickSound();
+            onViewCart();
+          }}
         >
           View Bag
         </button>

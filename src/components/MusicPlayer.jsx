@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 const BASE = (import.meta.env.BASE_URL || '/').replace(/\/$/, '') + '/';
 const AUDIO_SRC = `${BASE}audio/bgm.mp3`;
 const TARGET_VOLUME = 0.35;
-const STORAGE_KEY = 'nike_bgm_disabled';
+const STORAGE_KEY = 'nike_bgm_session_muted';
 
 export function MusicPlayer() {
   const [isPlaying, setIsPlaying] = useState(false);
@@ -40,9 +40,18 @@ export function MusicPlayer() {
   };
 
   useEffect(() => {
-    // Check if user previously chose to turn music off
-    const isExplicitlyDisabled = localStorage.getItem(STORAGE_KEY) === 'true';
-    if (isExplicitlyDisabled) {
+    // Clear old permanent localStorage mute flag if present from previous testing
+    try {
+      localStorage.removeItem('nike_bgm_disabled');
+    } catch {}
+
+    // Check if user explicitly turned music off during this session
+    let isSessionMuted = false;
+    try {
+      isSessionMuted = sessionStorage.getItem(STORAGE_KEY) === 'true';
+    } catch {}
+
+    if (isSessionMuted) {
       userPausedRef.current = true;
     }
 
@@ -61,7 +70,7 @@ export function MusicPlayer() {
           cleanupListeners();
         })
         .catch(() => {
-          // Waiting for first user interaction
+          // Awaiting user gesture per browser policy
         });
     };
 
@@ -73,11 +82,11 @@ export function MusicPlayer() {
       });
     };
 
-    if (!isExplicitlyDisabled) {
-      // 1. Try immediate playback on visit
+    if (!isSessionMuted) {
+      // 1. Try immediate playback on page mount
       startPlayback();
 
-      // 2. Listen across all natural visitor interactions
+      // 2. Listen on user's first touch / click / scroll across the store
       const events = ['pointerdown', 'pointerup', 'click', 'keydown', 'touchstart', 'wheel'];
       events.forEach((evt) => {
         window.addEventListener(evt, startPlayback, { once: true, passive: true });
@@ -99,14 +108,18 @@ export function MusicPlayer() {
     if (!audio) return;
 
     if (isPlaying) {
-      // User explicitly turned music OFF -> remember preference and keep it OFF
+      // User explicitly turned music OFF -> remember for current session and pause
       userPausedRef.current = true;
-      localStorage.setItem(STORAGE_KEY, 'true');
+      try {
+        sessionStorage.setItem(STORAGE_KEY, 'true');
+      } catch {}
       fadeOut(audio, () => setIsPlaying(false));
     } else {
-      // User turned music ON -> clear disabled preference and resume playback
+      // User turned music ON -> clear muted flag and resume playback
       userPausedRef.current = false;
-      localStorage.removeItem(STORAGE_KEY);
+      try {
+        sessionStorage.removeItem(STORAGE_KEY);
+      } catch {}
       audio.play().then(() => {
         setIsPlaying(true);
         fadeIn(audio);
