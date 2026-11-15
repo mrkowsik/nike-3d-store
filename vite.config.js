@@ -7,5 +7,8 @@ export default defineConfig(({ mode }) => ({
   server: {
     port: 5173,
     open: false
+  },
+  build: {
+    chunkSizeWarningLimit: 1600
   }
 }));
