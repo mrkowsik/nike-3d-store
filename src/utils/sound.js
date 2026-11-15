@@ -8,43 +8,47 @@ function getAudioContext() {
   if (!audioCtx) {
     audioCtx = new AudioContext();
   }
-  if (audioCtx.state === 'suspended') {
-    audioCtx.resume().catch(() => {});
-  }
   return audioCtx;
 }
 
 /**
  * Plays a smooth, silky, tactile "pop/click" sound when a customer clicks on any product.
- * Uses a soft pitch-decay sine wave (Apple/Boutique UI feel) with zero latency.
+ * Resumes suspended AudioContext seamlessly upon click.
  */
 export function playProductClickSound() {
   try {
     const ctx = getAudioContext();
     if (!ctx) return;
 
-    const now = ctx.currentTime;
+    const playTone = () => {
+      const now = ctx.currentTime;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
 
-    // Primary oscillator: soft sine pop
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
+      osc.type = 'sine';
+      // Smooth frequency drop from 680Hz to 200Hz gives a crisp, modern boutique "pop"
+      osc.frequency.setValueAtTime(680, now);
+      osc.frequency.exponentialRampToValueAtTime(200, now + 0.055);
 
-    osc.type = 'sine';
-    osc.frequency.setValueAtTime(640, now);
-    osc.frequency.exponentialRampToValueAtTime(220, now + 0.05);
+      // Fast attack & soft exponential release
+      gain.gain.setValueAtTime(0.001, now);
+      gain.gain.exponentialRampToValueAtTime(0.28, now + 0.004);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.06);
 
-    // Subtle volume envelope: smooth attack & exponential release
-    gain.gain.setValueAtTime(0.001, now);
-    gain.gain.exponentialRampToValueAtTime(0.24, now + 0.004);
-    gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.055);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
 
-    osc.connect(gain);
-    gain.connect(ctx.destination);
+      osc.start(now);
+      osc.stop(now + 0.065);
+    };
 
-    osc.start(now);
-    osc.stop(now + 0.06);
+    if (ctx.state === 'suspended') {
+      ctx.resume().then(playTone).catch(() => {});
+    } else {
+      playTone();
+    }
   } catch {
-    // Graceful fallback if audio context is blocked
+    // Graceful fallback if audio is blocked
   }
 }
 
@@ -56,23 +60,31 @@ export function playThumbTickSound() {
     const ctx = getAudioContext();
     if (!ctx) return;
 
-    const now = ctx.currentTime;
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
+    const playTick = () => {
+      const now = ctx.currentTime;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
 
-    osc.type = 'sine';
-    osc.frequency.setValueAtTime(880, now);
-    osc.frequency.exponentialRampToValueAtTime(440, now + 0.03);
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(840, now);
+      osc.frequency.exponentialRampToValueAtTime(420, now + 0.03);
 
-    gain.gain.setValueAtTime(0.001, now);
-    gain.gain.exponentialRampToValueAtTime(0.12, now + 0.002);
-    gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.035);
+      gain.gain.setValueAtTime(0.001, now);
+      gain.gain.exponentialRampToValueAtTime(0.14, now + 0.002);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.035);
 
-    osc.connect(gain);
-    gain.connect(ctx.destination);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
 
-    osc.start(now);
-    osc.stop(now + 0.04);
+      osc.start(now);
+      osc.stop(now + 0.04);
+    };
+
+    if (ctx.state === 'suspended') {
+      ctx.resume().then(playTick).catch(() => {});
+    } else {
+      playTick();
+    }
   } catch {
     // Graceful fallback
   }
