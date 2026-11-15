@@ -3,6 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 const BASE = (import.meta.env.BASE_URL || '/').replace(/\/$/, '') + '/';
 const AUDIO_SRC = `${BASE}audio/bgm.mp3`;
 const TARGET_VOLUME = 0.35;
+const STORAGE_KEY = 'nike_bgm_disabled';
 
 export function MusicPlayer() {
   const [isPlaying, setIsPlaying] = useState(false);
@@ -10,7 +11,7 @@ export function MusicPlayer() {
   const userPausedRef = useRef(false);
   const fadeIntervalRef = useRef(null);
 
-  // Smooth fade-in
+  // Smooth volume fade-in
   const fadeIn = (audio) => {
     clearInterval(fadeIntervalRef.current);
     audio.volume = 0;
@@ -20,10 +21,10 @@ export function MusicPlayer() {
       } else {
         clearInterval(fadeIntervalRef.current);
       }
-    }, 80);
+    }, 60);
   };
 
-  // Smooth fade-out
+  // Smooth volume fade-out
   const fadeOut = (audio, onComplete) => {
     clearInterval(fadeIntervalRef.current);
     fadeIntervalRef.current = setInterval(() => {
@@ -31,13 +32,20 @@ export function MusicPlayer() {
         audio.volume = Math.max(0, +(audio.volume - 0.05).toFixed(2));
       } else {
         clearInterval(fadeIntervalRef.current);
+        audio.volume = 0;
         audio.pause();
         onComplete?.();
       }
-    }, 60);
+    }, 50);
   };
 
   useEffect(() => {
+    // Check if user previously chose to turn music off
+    const isExplicitlyDisabled = localStorage.getItem(STORAGE_KEY) === 'true';
+    if (isExplicitlyDisabled) {
+      userPausedRef.current = true;
+    }
+
     const audio = new Audio(AUDIO_SRC);
     audio.loop = true;
     audio.preload = 'auto';
@@ -53,23 +61,29 @@ export function MusicPlayer() {
           cleanupListeners();
         })
         .catch(() => {
-          // Autoplay blocked by browser policy, keep listeners active
+          // Waiting for first user interaction
         });
     };
 
     const cleanupListeners = () => {
-      window.removeEventListener('pointerdown', startPlayback);
-      window.removeEventListener('keydown', startPlayback);
-      window.removeEventListener('touchstart', startPlayback);
+      const events = ['pointerdown', 'pointerup', 'click', 'keydown', 'touchstart', 'wheel'];
+      events.forEach((evt) => {
+        window.removeEventListener(evt, startPlayback);
+        document.removeEventListener(evt, startPlayback);
+      });
     };
 
-    // Try immediate playback (in case browser allows autoplay)
-    startPlayback();
+    if (!isExplicitlyDisabled) {
+      // 1. Try immediate playback on visit
+      startPlayback();
 
-    // Listen for first interaction to unlock audio
-    window.addEventListener('pointerdown', startPlayback, { once: true });
-    window.addEventListener('keydown', startPlayback, { once: true });
-    window.addEventListener('touchstart', startPlayback, { once: true });
+      // 2. Listen across all natural visitor interactions
+      const events = ['pointerdown', 'pointerup', 'click', 'keydown', 'touchstart', 'wheel'];
+      events.forEach((evt) => {
+        window.addEventListener(evt, startPlayback, { once: true, passive: true });
+        document.addEventListener(evt, startPlayback, { once: true, passive: true });
+      });
+    }
 
     return () => {
       cleanupListeners();
@@ -85,10 +99,14 @@ export function MusicPlayer() {
     if (!audio) return;
 
     if (isPlaying) {
+      // User explicitly turned music OFF -> remember preference and keep it OFF
       userPausedRef.current = true;
+      localStorage.setItem(STORAGE_KEY, 'true');
       fadeOut(audio, () => setIsPlaying(false));
     } else {
+      // User turned music ON -> clear disabled preference and resume playback
       userPausedRef.current = false;
+      localStorage.removeItem(STORAGE_KEY);
       audio.play().then(() => {
         setIsPlaying(true);
         fadeIn(audio);
@@ -101,8 +119,8 @@ export function MusicPlayer() {
       type="button"
       className={`music-toggle ${isPlaying ? 'is-playing' : 'is-paused'}`}
       onClick={togglePlay}
-      aria-label={isPlaying ? 'Pause background music' : 'Play background music'}
-      title={isPlaying ? 'Pause music' : 'Play music'}
+      aria-label={isPlaying ? 'Turn music off' : 'Turn music on'}
+      title={isPlaying ? 'Turn music off' : 'Turn music on'}
     >
       {isPlaying ? (
         <span className="music-bars" aria-hidden="true">
