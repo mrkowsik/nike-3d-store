@@ -7634,3 +7634,14 @@ export const TIPS = {
     ['Go back', 'Tap the background or press Back.']
   ]
 };
+
+const BASE = (import.meta.env.BASE_URL || '/').replace(/\/$/, '') + '/';
+if (BASE !== '/') {
+  ALL_PRODUCTS.forEach((p) => {
+    p.photos.forEach((ph) => {
+      if (ph.url && ph.url.startsWith('/')) {
+        ph.url = BASE + ph.url.slice(1);
+      }
+    });
+  });
+}
